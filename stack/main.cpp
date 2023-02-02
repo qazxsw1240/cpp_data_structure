@@ -131,15 +131,6 @@ bool tokenizer::next(token &value) {
 }
 
 std::vector<token> convert_rpn(const std::string &expression) {
-    // Simplified Shunting Yard Algorithm
-    // 1.   토큰이 피연산자(숫자)면 바로 넘긴다.
-    // 2.   토큰이 연산자면 우선순위가 같거나 높은 연산자를 스택에서 차례대로 꺼내고,
-    //      해당 토큰을 스택에 저장한다.
-    // 3.   토큰이 여는 괄호면 스택에 저장한다.
-    // 4.   토큰이 닫는 괄호면 스택에서 여는 괄호를 찾을 때까지 연산자를 꺼낸다.
-    // 4-1. 만약 스택이 빌 때까지 여는 괄호를 찾지 못했다면 괄호의 짝이 맞지 않는 것이다.
-    // 5.   토큰이 이제 없다면 스택에서 연산자를 차례로 꺼낸다.
-    // 5-1. 만약 스택에 괄호가 남아있다면 괄호의 짝이 맞지 않는 것이다.
     array_stack<token> token_stack(expression.length());
     tokenizer tokenizer(expression);
     std::vector<token> tokens;
@@ -176,16 +167,16 @@ std::vector<token> convert_rpn(const std::string &expression) {
     return tokens;
 }
 
-int evaluate_rpn(const std::vector<token> &tokens) {
-    int result = 0;
-    array_stack<int> token_stack(tokens.size());
+double evaluate_rpn(const std::vector<token> &tokens) {
+    double result = 0;
+    array_stack<double> token_stack(tokens.size());
     for (const token &t: tokens) {
         if (t.m_type == token_type::number) {
-            token_stack.push(std::stoi(t.m_value));
+            token_stack.push(std::stod(t.m_value));
         } else {
             if (token_stack.size() < 2)
                 throw std::runtime_error("invalid number in expression.");
-            int left, right;
+            double left, right;
             token_stack.pop(right);
             token_stack.pop(left);
             if (t.m_value == "+") {
@@ -208,23 +199,32 @@ int evaluate_rpn(const std::vector<token> &tokens) {
     return result;
 }
 
+std::string rpn_tokens_to_string(const std::vector<token> &tokens) {
+    std::string result;
+    for (const token &token: tokens) {
+        result.append(token.m_value);
+        result.push_back(' ');
+    }
+    return result;
+}
+
 int main(int, char **) {
     const std::vector<std::string> expressions{
             "(4 - 19) * (7 + 19) + 19 * (7 - 4 + 19)",
             "3 * 8 + 4",
             "4 - 2 * (6 - 3) / (3 * (11 - 3))",
             "72 / (12 - 6)",
-            "1 * 1 * 1 * ((1 * 1) *" // error
+            "1 * 1 * 1 * ((1 * 1) *", // error
+            "1 * 1 * 1 * ((1 * 1) * 1)"
     };
     for (const std::string &expression: expressions) {
         try {
+            std::cout << "expression: " << expression << std::endl;
             const std::vector<token> tokens = convert_rpn(expression);
-            std::cout << "converted: ";
-            for (const token &token: tokens)
-                std::cout << token.m_value << ' ';
-            std::cout << std::endl;
+            std::cout << "converted : " << rpn_tokens_to_string(tokens) << std::endl;
+            std::cout << "evaluated : " << evaluate_rpn(tokens) << std::endl << std::endl;
         } catch (std::exception &e) {
-            std::cout << e.what() << std::endl;
+            std::cout << e.what() << std::endl << std::endl;
         }
     }
     return 0;
